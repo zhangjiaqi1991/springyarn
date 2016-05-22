@@ -1,0 +1,13 @@
+spring:
+  batch:
+    job:
+      enabled: false
+  hadoop:
+    fsUri: hdfs://zjq:9000
+    resourceManagerHost: zjq
+example:
+  inputLocalDir: data
+  inputFileName: tweets.dat
+  inputDir: /tmp/hashtags/input
+  outputDir: /tmp/hashtags/output
+  sparkAssembly: hdfs:///app/spark/spark-assembly-1.5.1-hadoop2.6.0.jar

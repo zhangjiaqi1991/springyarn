@@ -2,8 +2,8 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>sprint hello</title>
+    <title>sprint yarn</title>
 </head>
-<body>hello ${spring}!
+<body>Running}!
 </body>
 </html>

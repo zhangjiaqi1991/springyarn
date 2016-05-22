@@ -99,7 +99,6 @@
           <element id="library" level="project" name="Maven: com.google.code.findbugs:jsr305:3.0.0" />
           <element id="library" level="project" name="Maven: org.apache.zookeeper:zookeeper:3.4.6" />
           <element id="library" level="project" name="Maven: org.springframework:spring-context-support:4.2.4.RELEASE" />
-          <element id="library" level="project" name="Maven: org.yaml:snakeyaml:1.16" />
           <element id="library" level="project" name="Maven: org.springframework:spring-aop:4.2.4.RELEASE" />
           <element id="library" level="project" name="Maven: aopalliance:aopalliance:1.0" />
           <element id="library" level="project" name="Maven: org.apache.hadoop:hadoop-streaming:2.7.1" />
@@ -180,6 +179,7 @@
           <element id="library" level="project" name="Maven: org.springframework:spring-expression:4.2.4.RELEASE" />
           <element id="library" level="project" name="Maven: org.springframework:spring-web:4.2.5.RELEASE" />
           <element id="library" level="project" name="Maven: org.springframework:spring-webmvc:4.2.5.RELEASE" />
+          <element id="library" level="project" name="Maven: org.yaml:snakeyaml:1.17" />
         </element>
       </element>
       <element id="directory" name="META-INF">
