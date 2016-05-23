@@ -7,4 +7,4 @@ if (fsh.test(indir)) {
 if (fsh.test(outdir)) {
     fsh.rmr(outdir);
 }
-fsh.copyFromLocal(source+'/'+file, indir+'/'+file);
+fsh.copyFromLocal('/home/hy/'+source+'/'+file, indir+'/'+file);

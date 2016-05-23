@@ -16,11 +16,10 @@ public class YarnController {
 
     @RequestMapping("/hello")
     public String hello() {
-        ModelAndView mv = new ModelAndView();
         try{
-            yarnService.run();
+            yarnService.run("task");
         }catch (Exception e){
-            System.out.println(e.getCause());
+            e.printStackTrace();
         }
         return "hello";
     }

@@ -12,6 +12,7 @@ import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory
 import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.hadoop.batch.scripting.ScriptTasklet;
 import org.springframework.data.hadoop.batch.spark.SparkYarnTasklet;
@@ -106,7 +107,8 @@ public class SparkYarnConfiguration {
         sparkTasklet.setSparkAssemblyJar(sparkAssembly);
         sparkTasklet.setHadoopConfiguration(hadoopConfiguration);
         sparkTasklet.setAppClass("Hashtags");
-        File jarFile = new File(System.getProperty("user.dir") + "/app/cbdp.jar");
+       // File jarFile = new File(System.getProperty("user.dir") + "/app/cbdp.jar");
+        File jarFile = new File("/home/hy/app/cbdp.jar");
         sparkTasklet.setAppJar(jarFile.toURI().toString());
         sparkTasklet.setExecutorMemory("256M");
         sparkTasklet.setNumExecutors(1);
