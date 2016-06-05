@@ -23,10 +23,9 @@ public class YarnController {
         }
         return "hello";
     }
-
     @RequestMapping("/")
     public String index() {
-        ModelAndView mv = new ModelAndView();
         return "index";
     }
+
 }

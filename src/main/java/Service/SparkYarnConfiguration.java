@@ -5,14 +5,12 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
-import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.ImportResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.hadoop.batch.scripting.ScriptTasklet;
 import org.springframework.data.hadoop.batch.spark.SparkYarnTasklet;
@@ -23,7 +21,6 @@ import org.springframework.scripting.support.ResourceScriptSource;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by hy on 16-5-11.
@@ -34,6 +31,7 @@ public class SparkYarnConfiguration {
 
     @Autowired
     private org.apache.hadoop.conf.Configuration hadoopConfiguration;
+
 
 
     @Value("${example.inputDir}")
@@ -51,13 +49,19 @@ public class SparkYarnConfiguration {
     @Value("${example.sparkAssembly}")
     String sparkAssembly;
 
+    @Value("${example.outputLocalDir}")
+    String outputLocalDir;
+
+
+
     // Job definition
     @Bean
-    Job tweetHashtags(JobBuilderFactory jobs, Step initScript, Step sparkTopHashtags) throws Exception {
+    Job sparkClusterJob(JobBuilderFactory jobs, Step initScript, Step sparkCluster,Step finishScript) throws Exception {
         System.out.println("job definition");
-        return jobs.get("TweetTopHashtags")
+        return jobs.get("sparkClusterJob")
                 .start(initScript)//定义两部操作 initScript 和 sparkTopHashtags
-                .next(sparkTopHashtags)
+                .next(sparkCluster)
+                .next(finishScript)
                 .build();
     }
 
@@ -79,7 +83,7 @@ public class SparkYarnConfiguration {
 
     @Bean
     HdfsScriptRunner scriptRunner() {
-        ScriptSource script = new ResourceScriptSource(new ClassPathResource("fileCopy.js"));
+        ScriptSource script = new ResourceScriptSource(new ClassPathResource("fileCopyToHdfs.js"));
         HdfsScriptRunner scriptRunner = new HdfsScriptRunner();
         scriptRunner.setConfiguration(hadoopConfiguration);
         scriptRunner.setLanguage("javascript");
@@ -92,38 +96,68 @@ public class SparkYarnConfiguration {
         scriptRunner.setScriptSource(script);
         return scriptRunner;
     }
-    // Step 2 - Spark Top Hashtags
+    // Step 2 - spark Cluster tasklet
     @Bean
-    Step sparkTopHashtags(StepBuilderFactory steps, Tasklet sparkTopHashtagsTasklet) throws Exception {
+    Step sparkCluster(StepBuilderFactory steps, Tasklet sparkClusterTasklet) throws Exception {
         System.out.println("init sparktask");
-        return steps.get("sparkTopHashtags")
-                .tasklet(sparkTopHashtagsTasklet)
+        return steps.get("sparkCluster")
+                .tasklet(sparkClusterTasklet)
+                .build();
+    }
+
+
+    @Bean
+    @StepScope
+    SparkYarnTasklet sparkClusterTasklet(
+            @Value("#{jobParameters['latcol']}")final String latcol,//经度列
+            @Value("#{jobParameters['loncol']}")final String loncol,//纬度列
+            @Value("#{jobParameters['numexecuter']}")final String numexecuter,//excutor个数
+            @Value("#{jobParameters['memory']}")final String memory,//内存
+            @Value("#{jobParameters['filename']}")final String filename,//文件名
+    @Value("#{jobParameters['threshold']}")final String threshold//阈值
+
+    ) throws Exception {
+        SparkYarnTasklet sparkTasklet = new SparkYarnTasklet();
+        sparkTasklet.setSparkAssemblyJar(sparkAssembly);
+        sparkTasklet.setHadoopConfiguration(hadoopConfiguration);
+        sparkTasklet.setAppClass("sparkCluster");//主类
+        File jarFile = new File("/Users/zjq/IdeaProjects/springyarn/app/cbdp.jar");//jar包
+        sparkTasklet.setAppJar(jarFile.toURI().toString());
+        sparkTasklet.setExecutorMemory(memory);
+        sparkTasklet.setNumExecutors(Integer.valueOf(numexecuter));
+        sparkTasklet.setArguments(new String[]{
+                hadoopConfiguration.get("fs.defaultFS") + inputDir + "/" + inputFileName,
+                hadoopConfiguration.get("fs.defaultFS") + outputDir,latcol,loncol,filename,threshold});
+        return sparkTasklet;
+    }
+    // Step 3 - finish Script
+    @Bean
+    Step finishScript(StepBuilderFactory steps, Tasklet finishscriptTasklet) throws Exception {
+        System.out.println("finish scripttask");
+        return steps.get("finishScript")
+                .tasklet(finishscriptTasklet)
                 .build();
     }
 
     @Bean
-    SparkYarnTasklet sparkTopHashtagsTasklet() throws Exception {
-        SparkYarnTasklet sparkTasklet = new SparkYarnTasklet();
-        sparkTasklet.setSparkAssemblyJar(sparkAssembly);
-        sparkTasklet.setHadoopConfiguration(hadoopConfiguration);
-        sparkTasklet.setAppClass("Hashtags");
-       // File jarFile = new File(System.getProperty("user.dir") + "/app/cbdp.jar");
-        File jarFile = new File("/home/hy/app/cbdp.jar");
-        sparkTasklet.setAppJar(jarFile.toURI().toString());
-        sparkTasklet.setExecutorMemory("256M");
-        sparkTasklet.setNumExecutors(1);
-        sparkTasklet.setArguments(new String[]{
-                hadoopConfiguration.get("fs.defaultFS") + inputDir + "/" + inputFileName,
-                hadoopConfiguration.get("fs.defaultFS") + outputDir});
-        return sparkTasklet;
+    ScriptTasklet finishscriptTasklet(HdfsScriptRunner finishscriptRunner) {
+        ScriptTasklet scriptTasklet = new ScriptTasklet();
+        scriptTasklet.setScriptCallback(finishscriptRunner);
+        return scriptTasklet;
     }
 
-//    @Bean
-//    public EmbeddedServletContainerFactory servletContainer() {
-//        TomcatEmbeddedServletContainerFactory factory = new TomcatEmbeddedServletContainerFactory();
-//        factory.setPort(7777);
-//        factory.setSessionTimeout(10, TimeUnit.MINUTES);
-//        //factory.addErrorPages(new ErrorPage(HttpStatus.404, "/notfound.html"));
-//        return factory;
-//    }
+    @Bean
+    HdfsScriptRunner finishscriptRunner() {
+        ScriptSource script = new ResourceScriptSource(new ClassPathResource("fileCopyToFs.js"));
+        HdfsScriptRunner scriptRunner = new HdfsScriptRunner();
+        scriptRunner.setConfiguration(hadoopConfiguration);
+        scriptRunner.setLanguage("javascript");
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("result",outputLocalDir);
+        arguments.put("outdir", outputDir);//file already exists!
+        scriptRunner.setArguments(arguments);
+        scriptRunner.setScriptSource(script);
+        return scriptRunner;
+    }
+
 }
